@@ -1,0 +1,374 @@
+React is a powerful library for building user interfaces, known for its extensive ecosystem, large community, and flexibility in building complex and dynamic applications. One of its core features is the Virtual DOM, which helps React efficiently manage UI updates.
+
+The Virtual DOM is an in-memory representation of the real DOM. When the state of a component changes, React compares the current Virtual DOM with a previous snapshot to detect differences. This allows React to only update the parts of the real DOM that have changed, improving performance. However, in larger applications with complex component trees, frequent re-renders can become computationally expensive, as React must recreate and compare the Virtual DOM each time a state change occurs.
+
+To mitigate the performance cost of unnecessary re-renders, React provides several optimization techniques that allow developers to improve the efficiency of their applications.
+
+There are several techniques to improve React performance, and below is a list of those that are effective and can be applied to any application:
+
+1. list virtualization
+2. lazy loading images
+3. memoization  
+4. throttling events 
+5. debouncing events
+6. code splitting
+7. React fragments
+8. useTransition hook
+9. web workers
+10. image sprites
+
+In this article, I will focus on the first three techniques: list virtualization, lazy loading images, and memoization. In my next article, I will explore the remaining topics, except for web workers, as I have already written a detailed article on that subject, which you can find here: [Web Workers](https://dev.to/anasmustafa123/why-the-streams-api-is-a-game-changer-for-web-developers-1030).
+
+Now, let's dive into how these techniques can enhance performance, starting with list virtualization.
+## 1. list virtualization
+![list virtualization time taken](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/05g8nzn4qwohuk40boob.png)
+Rendering a large list is expensive, not only during the initial load time, as React has to render the entire list before displaying the UI. This is where list virtualization comes into play.
+
+Consider this: why load the entire list at once if the user can only see a small portion of it due to screen size? Instead of rendering the entire list, we can render only the visible portion and load more items as the user scrolls. This is exactly what list virtualization does—only rendering the items that are currently in view, significantly improving performance for large lists.
+ this feature is used by most of social media apps like facebook, x and instegram. 
+
+
+![list virtualization time taken](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/ahyit5j9hj671f94drk9.gif)
+> In the image above, you can see how X (formerly Twitter) effectively renders an infinite number of posts by only displaying a fixed number at a time. This is achieved through list virtualization.
+
+To implement list virtualization in React, we can use one of two libraries: [react-window](https://github.com/bvaughn/react-window) or [react-virtualized](https://github.com/bvaughn/react-virtualized/tree/master), both created by the same author. In this case, we will use `react-window` due to its simplicity.
+
+I will demonstrate how to implement it using `react-window` and also show the difference with a regular map implementation.
+
+1. install the library
+```shell
+# Yarn
+yarn add react-window
+
+# NPM
+npm install --save react-window
+```
+2. In this example, we use the `AutoSizer` component to ensure the list takes up all available space:
+```typescript
+import { FixedSizeList as List } from "react-window";
+import AutoSizer from "react-virtualized-auto-sizer";
+import "./styles.css";
+
+export const Window_List = () => {
+const Row = ({ index, style }: { index: any; style: any }) => (
+<div className={index % 2 ? "ListItemOdd" : "ListItemEven"} style={style}>
+Row {index} 
+</div>
+);
+return (
+<AutoSizer>
+{({ height, width }: { height: any; width: any }) => (
+<List
+className="List"
+height={height}
+itemCount={1000}
+itemSize={35}
+width={width}
+>
+{Row}
+</List>
+)}
+</AutoSizer>
+)};
+```
+
+ ![list time taken](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/gpopgy48gjpkaxct0q7v.png)
+>You can see that the load time is not significantly affected when using list virtualization, which is expected since only the visible items are loaded initially.
+
+3. here a list without virtualization
+```ts
+export const List = ({ count }: { count: number }) => {
+return (
+<ul className="uList">
+{
+new Array(count).fill(null).map((_, index) => {
+	return (
+		<>
+			{index % 2 ? (
+			<li className="item odd_item">Row {index}</li>
+			) : (
+			<li className="item even_item">Row {index}</li>
+			)}
+		</>
+	);
+}
+)}
+</ul>
+);
+};
+```
+
+>You can see that the load time is significantly longer when dealing with a normal list, which increases exponentially as the number of items grows.
+
+> **Important:** Use list virtualization only when handling large lists. While it minimizes loading time, the application still needs to update the screen with new data as the user scrolls, which means rendering additional components.
+
+## 2. lazy loading images
+
+Lazy loading is a technique used to defer the loading of off-screen images until the user scrolls near them. This helps improve the initial page load time by only loading the necessary resources upfront, and deferring others until they are needed. This can greatly enhance the performance and user experience of your application, especially when dealing with media-heavy pages.
+
+In React, lazy loading can be implemented efficiently using the native `loading="lazy"` attribute for images, or by using more advanced techniques like Intersection Observer for customized control over when and how images load.
+
+#### Why Use Lazy Loading?
+
+- **Improved performance**: Lazy loading images can significantly reduce the initial page load time, especially on pages with many images. Only images that are visible in the viewport are loaded immediately, reducing the number of requests and the amount of data loaded initially.
+- **Better user experience**: Faster initial load times lead to a smoother and more responsive experience for users, particularly on slower networks or less powerful devices.
+- **Bandwidth savings**: Lazy loading helps save bandwidth by only loading images that the user actually scrolls to, preventing unnecessary data usage.
+#### Without Lazy Image: 
+
+When images are not lazily loaded, they are all fetched as soon as the page loads, even if they are off-screen and not immediately visible to the user. This can significantly increase the initial page load time and affect performance, especially if your page contains many images or large media files.
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/217mjpwxwc5p5xtz9de6.gif)
+
+>In the above example, all images are being loaded upfront, causing delays in rendering the entire page.
+
+---
+#### Basic Example: Lazy Loading with `loading="lazy"`
+
+The simplest way to implement lazy loading in React is by using the `loading="lazy"` attribute on the `<img>` tag. This attribute tells the browser to defer loading the image until it's needed.
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/bbvkzsx1pdj6rf9hs0a9.gif)
+
+In this example, the browser will automatically lazy load the images as the user scrolls down, without requiring any additional JavaScript.
+
+--- 
+#### Advanced Example: Lazy Loading with Intersection Observer
+
+For more control over the lazy loading behavior, you can use the **Intersection Observer API**. This API allows you to observe when an element enters or exits the viewport, and can be used to lazy load images only when they are about to be displayed on the screen.
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/yjwyld5ykmjn8hnznaqs.gif)
+In this example, the `LazyImage` component uses the Intersection Observer API to detect when the image enters the viewport. When the image is about to be visible, it loads the image source (`src`). Otherwise, it displays a placeholder, optimizing both performance and user experience.
+
+#### Conclusion
+
+Lazy loading images can greatly improve both performance and user experience by deferring the loading of off-screen images until they're needed. Whether using the native `loading="lazy"` attribute or a more advanced custom solution with Intersection Observer, lazy loading is a simple yet powerful optimization technique for modern web applications.
+
+
+## 3. memoization  
+Memoization is a powerful optimization technique, and the name comes from "memo," which refers to saving something for later use. In React, memoization helps by caching the results of computations or function calls so that they are not repeated unnecessarily. This improves the overall performance of your application by avoiding redundant re-renders and recalculations.
+
+>In React, memoization can be achieved in three main ways, each offering unique capabilities:
+1. **`useMemo`**
+2. **`memo`**
+3. **`useCallback`**
+
+---
+### 1. useMemo
+The `useMemo` hook allows you to **cache the result** of a function call, making it available for later use without recalculating. 
+When you call a function for the first time, `useMemo` executes it normally. However, on subsequent calls with the same dependencies (input values), it simply returns the **cached value**, thus saving computation time.
+
+>This is particularly useful when the function is **computationally expensive**, as it prevents the costly operation from being executed on every render unless necessary.
+
+> u can find full code [here](https://gist.github.com/anasmustafa123/54013d3f1348bae81b51b6b7727e4e0d)
+
+here u can find code for normal function call
+```ts
+const [a, seta] = useState("");
+const [b, setb] = useState("");
+
+function do_something(a: string, b: string) {
+	console.log("do_something called");
+	return a + b;
+}
+return (
+<button
+	onClick={() => {
+		console.log(do_something(a, b));
+	}}
+	className="button">
+	Click Me
+</button>
+);
+}
+```
+
+![any description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/r2vc9j22mwh3vedg3qzt.gif)
+
+In the previous example, the `"do_something called"` message is printed every time the button is clicked, even though the parameters `a` and `b` haven't changed. This shows that the function `do_something` is recalculated on every render, which is not ideal when working with **expensive computations**.
+
+By using the `useMemo` hook, we can **memoize** the result of the function call and ensure that `do_something` only runs when `a` or `b` changes, rather than on every click.
+
+Here's how `useMemo` solves this problem:
+```ts
+const [a, seta] = useState("");
+const [b, setb] = useState("");
+
+function do_something(a: string, b: string) {
+	console.log("do_something called");
+	return a + b;
+}
+const memo_do_something = useMemo(() => do_something(a, b), [a, b]);
+return (
+<button
+	onClick={() => {
+		console.log(memo_do_something);
+	}}
+	className="button">
+	Click Me
+</button>
+);
+}
+```
+In this updated code:
+
+- The function `do_something` is now **memoized** using the `useMemo` hook.
+- The `"do_something called"` log is only printed when the values of `a` or `b` change. On subsequent clicks, the memoized value is reused, avoiding the need to recalculate the result.
+![any description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/qwgdggehi94xw0agbdys.gif)
+ - you would notice that the `"do_something called"` is not printed when u click the button as it uses the cashed value, it instead printed when the states in the dependency array change `[a,b]`.
+##### Key Takeaways:
+
+- `useMemo` helps to prevent unnecessary recalculations by **memoizing** the result of expensive functions.
+- It will only recompute when one of the values in the dependency array (`[a, b]`) changes, making it ideal for performance optimization in large applications.
+---
+#### 2. Memo
+`React.memo` is a higher-order component (HOC) used to memoize functional components. It ensures that a component only re-renders if its props change. 
+>This is particularly useful for components that receive the same props frequently but don't need to re-render.
+
+lets build a small example to show how `React.memo` can be useful 
+down here u can see the virtual dom structure of the project
+
+
+![any description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/phvsqa3xae1bnq6s06bd.png)4
+
+In this example, we have an `App` component that renders two child components: `Child_1` and `Child_2`. Inside `Child_1`, there is another nested component, `Child_1_1`. Each of these components receives a prop (`prop`), and we trigger a re-render by updating the state (`variable`) through a button click.
+
+---
+##### Behavior without `React.memo`:
+
+1. Every time the `variable` is incremented in `App`, all child components (`Child_1`, `Child_2`, and `Child_1_1`) are re-rendered, even though their props do not change.
+2. This is unnecessary and can degrade performance in larger applications since React re-renders components even when they receive the same props.
+
+> u can find full code [here](https://gist.github.com/anasmustafa123/3bfdf3d6d265afaa4b292d96f0284a17)
+
+```ts
+function App() {
+	console.log('App rerender');
+	const [variable, setVariable] = useState(0);
+	return (
+	<>
+		<button
+			onClick={() => {
+				setVariable((old) => old + 1);
+			}
+		}>	
+			increment
+		</button>
+		<Child_1 prop={555} />
+		<Child_2 prop={555} />
+		</>
+	);
+}
+export const Child_1 = ({ prop }: { prop: any }) => {
+	console.log(`child_1 rendered`);
+	return (
+		<div
+			<Child_1_1 prop={555} />
+		</div>
+	);
+};
+export const Child_2 = ({ prop }: { prop: any }) => {
+	console.log(`child_2 rendered`);
+	return <div></div>;
+};
+export const Child_1_1 = ({ prop }: { prop: any }) => {
+	console.log(`child_1_1 rendered`);
+	return <div></div>;
+};
+```
+
+> In the GIF, every time the button is clicked, **all components rerender**, even though the `prop` values of `Child_1`, `Child_2`, and `Child_1_1` haven't changed. This results in unnecessary renders.
+
+![any description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/mk9s3jyjpvmru4thxs0x.gif)
+
+
+---
+##### Introducing `React.memo`:
+
+To prevent unnecessary re-renders, we can wrap these child components with `React.memo`. This ensures that they only re-render when their props change, reducing the overall rendering load.
+```ts
+export const Child_1 = memo(({ prop }: { prop: any }) => {
+	console.log(`child_1 rendered`);
+	return (
+		<div
+			<Child_1_1 prop={555} />
+		</div>
+	);
+});
+export const Child_2 = memo(({ prop }: { prop: any }) => {
+	console.log(`child_2 rendered`);
+	return <div></div>;
+});
+export const Child_1_1 = memo(({ prop }: { prop: any }) => {
+	console.log(`child_1_1 rendered`);
+	return <div></div>;
+});
+```
+
+>In the GIF after introducing `React.memo`, when you click the button, only the `App` component re-renders. Neither `Child_1`, `Child_2`, nor `Child_1_1` re-renders since their props remain unchanged. 
+
+![any description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/41m2dio5nd020zdcylx3.gif)
+##### **Conclusion**:
+
+By using `React.memo`, you prevent unnecessary re-renders of child components when their props remain the same. This technique is particularly beneficial in applications with complex component hierarchies or expensive re-renders, as it helps optimize performance by avoiding redundant renders. However, it's important to note that `React.memo` should only be used when needed, as overusing it can sometimes introduce complexity without much benefit.
+
+---
+#### 3. useCallback
+The `useCallback` hook allows you to **cache the function definition** itself, which means React will not recreate the function on every render unless the specified dependencies change.
+
+#### Why is this useful?
+
+- **Function recreation on every render**: In React, functions inside components are redefined each time the component re-renders. This means even though the function's logic hasn’t changed, React will treat it as a new function. If you pass such a function as a prop to child components, React will think the prop has changed and unnecessarily re-render those child components.
+    
+- **Prevent unnecessary child component re-renders**: By caching the function definition with `useCallback`, React ensures that the function reference remains the same until its dependencies (usually state or props) change. This prevents child components from being re-rendered unnecessarily.
+
+##### Example: Using `useCallback` to Prevent Unnecessary Re-renders
+
+In the previous example, let's modify the `Child_1` component to accept a function as a prop, which will help us demonstrate the `useCallback` hook.
+##### Before Using `useCallback`
+```ts
+function App() {
+	console.log('App rerender');
+	const [variable, setVariable] = useState(0);
+	function do_something () {
+		console.log('do_something is called');
+		return 'hello world';
+	}
+	return (
+		<>
+			<button
+				onClick={() => {
+				setVariable((old) => old + 1);
+				}}>
+				increment
+			</button>
+			<Child_1 prop={do_something} />
+		</>
+	);
+}
+export default App;
+```
+
+>In this example, `Child_1` re-renders every time `App` re-renders, even though the function `do_something` hasn't changed. This happens because `do_something` is redefined on every render of `App`, causing React to think the prop passed to `Child_1` has changed.
+
+![any description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/0idbglc96hsfvmqcyggi.gif)
+
+---
+##### Solution: Using `useCallback`
+
+By using the `useCallback` hook, we can cache the `do_something` function to avoid its recreation on each render, thus preventing `Child_1` from re-rendering unnecessarily.
+```ts
+// change do_something to
+const cashed_do_something = useCallback(function do_something() {
+	console.log("do_something is called");
+	return "hello world";
+}, []);
+// update prop
+<Child_1 prop={cashed_do_something} />
+```
+
+>With `useCallback`, React will cache the `cashed_do_something` function, and `Child_1` will only re-render when the dependencies of `useCallback` (in this case, none) change. This optimizes the rendering process, reducing unnecessary renders of `Child_1`.
+
+![any description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/8loz8n92r1p6kj31py1h.gif)
+##### Conclusion
+
+Using `useCallback` is an effective way to avoid unnecessary re-renders caused by passing newly created function references to child components. This hook is particularly beneficial in applications where performance is a concern, especially when dealing with deeply nested component trees or passing functions as props frequently.
