@@ -1,4 +1,4 @@
-import { RefObject, useEffect, useRef } from "react";
+import { RefObject } from "react";
 import { Project_Box } from "./Project_Box";
 export const Projects = ({
   componenet_ref,
