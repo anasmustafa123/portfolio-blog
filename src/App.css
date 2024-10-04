@@ -328,6 +328,38 @@ footer a:hover {
   box-shadow: 0 0 1rem var(--main-color);
 }
 
+/* --- */
+
+.callout-container {
+  width: fit-content;
+  border: 1px solid currentColor;
+  background-color: #27272a; /* Equivalent to bg-zinc-800 */
+  border-radius: 0.25rem; /* Equivalent to rounded */
+  padding-left: 0.5rem; /* Equivalent to px-2 */
+  padding-right: 0.5rem; /* Equivalent to px-2 */
+  position: relative;
+  margin-left: -1ch; /* Equivalent to -ml-[1ch] */
+  margin-top: 0.25rem; /* Equivalent to mt-1 */
+  white-space: break-spaces; /* Equivalent to whitespace-break-spaces */
+}
+
+.callout-arrow {
+  position: absolute;
+  border-left: 1px solid currentColor;
+  border-top: 1px solid currentColor;
+  width: 0.5rem; /* Equivalent to w-2 */
+  height: 0.5rem; /* Equivalent to h-2 */
+  transform: rotate(45deg);
+  transform: translateY(-50%);
+  top: -1px; /* Equivalent to -top-[1px] */
+  background-color: #27272a; /* Equivalent to bg-zinc-800 */
+}
+
+.code-container {
+  border: 1px solid #27272a; /* Equivalent to border border-zinc-800 */
+}
+
+
 @media (max-width: 1200px) {
   html {
     font-size: 51%;
